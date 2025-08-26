@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netsafe Navigator</title>
+    <!-- Use a fun, tech-oriented font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Tone.js for music and sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            --primary-color: #007bff; /* A nice Netsafe blue */
+            --secondary-color: #f8f9fa; /* Light grey */
+            --tertiary-color: #212529; /* Dark grey for text */
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --font-main: 'Press+Start+2P', cursive;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--secondary-color);
+            color: var(--tertiary-color);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        #game-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(145deg, #e6e6e6, #ffffff);
+            border-radius: 20px;
+            box-shadow: 10px 10px 20px #d1d1d1, -10px -10px 20px #ffffff;
+            padding: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 10px 0 20px;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        #start-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--primary-color);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 90%;
+            z-index: 20;
+            line-height: 1.5;
+            animation: fadeIn 0.5s;
+        }
+
+        #start-screen h2 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: white;
+            font-family: var(--font-main);
+        }
+
+        #start-screen p {
+            margin: 10px 0 20px;
+            font-family: Arial, sans-serif;
+        }
+        
+        #gameCanvas {
+            border: 5px solid var(--primary-color);
+            border-radius: 15px;
+            background-color: #f1f1f1;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+            touch-action: none; /* Disable default touch behavior like scrolling */
+            width: 100%; /* Make canvas responsive */
+            max-width: 500px;
+            height: auto;
+            aspect-ratio: 1 / 1; /* Maintain a square aspect ratio */
+            display: none; /* Hidden on start screen */
+        }
+
+        #ui-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+            margin-top: 15px;
+            font-size: 1rem;
+            color: var(--tertiary-color);
+            font-family: Arial, sans-serif; /* Simpler font for score */
+        }
+
+        #lives-display {
+            display: flex;
+            gap: 5px;
+            font-size: 1.5rem;
+        }
+
+        #message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--primary-color);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 90%;
+            display: none;
+            z-index: 30;
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #message-box.visible {
+            display: block;
+        }
+
+        #message-box h2 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: white;
+            font-family: var(--font-main);
+        }
+
+        #message-box p {
+            margin: 10px 0 0;
+        }
+
+        .button {
+            background: linear-gradient(145deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            font-size: 1rem;
+            font-family: var(--font-main);
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 5px 5px 10px #d1d1d1, -5px -5px 10px #ffffff;
+            transition: all 0.2s ease-in-out;
+            text-transform: uppercase;
+        }
+        
+        .button.sound-toggle {
+            font-size: 0.8rem;
+            padding: 10px 15px;
+        }
+
+        .button:hover {
+            box-shadow: inset 5px 5px 10px #0056b3, inset -5px -5px 10px #007bff;
+            transform: scale(0.98);
+        }
+
+        #restart-button, #netsafe-button {
+            display: none;
+            margin: 10px;
+        }
+
+        #end-game-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        /* Mobile controls */
+        #mobile-controls {
+            display: none; /* Hidden by default */
+            margin-top: 20px;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: center;
+        }
+
+        .control-btn {
+            background-color: var(--primary-color);
+            color: white;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            margin: 5px;
+            font-size: 2rem;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            user-select: none;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+            #game-container {
+                padding: 10px;
+            }
+            #mobile-controls {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Netsafe Navigator</h1>
+
+        <!-- Start Screen -->
+        <div id="start-screen">
+            <h2>Netsafe Navigator</h2>
+            <p><strong>Navigate the digital world!</strong> Collect all the positive items and find all the insights to become a great digital citizen.</p>
+            <p>You have three lives. Don't let the threats get you!</p>
+            <button id="startButton" class="button">Start Game</button>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui-panel">
+            <div id="lives-display"></div>
+            <span id="score">Score: 0</span>
+            <button id="soundToggle" class="button sound-toggle">Sound On</button>
+            <span id="collectibles-left">Remaining: 0</span>
+        </div>
+        <div id="mobile-controls">
+            <div class="control-row">
+                <div class="control-btn" data-direction="up">⬆️</div>
+            </div>
+            <div class="control-row">
+                <div class="control-btn" data-direction="left">⬅️</div>
+                <div class="control-btn" data-direction="down">⬇️</div>
+                <div class="control-btn" data-direction="right">➡️</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Message Box / Modal for Insights -->
+    <div id="message-box">
+        <h2 id="message-title"></h2>
+        <p id="message-text"></p>
+        <button id="message-ok" class="button">OK</button>
+        <div id="end-game-buttons">
+            <button id="restart-button" class="button">Restart</button>
+            <button id="netsafe-button" class="button">Visit Netsafe</button>
+        </div>
+    </div>
+
+    <script>
+        // Use an IIFE (Immediately Invoked Function Expression) to avoid global scope pollution
+        (function() {
+            // --- DOM Elements & Constants ---
+            const startScreen = document.getElementById('start-screen');
+            const startButton = document.getElementById('startButton');
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const scoreDisplay = document.getElementById('score');
+            const livesDisplay = document.getElementById('lives-display');
+            const collectiblesLeftDisplay = document.getElementById('collectibles-left');
+            const messageBox = document.getElementById('message-box');
+            const messageTitle = document.getElementById('message-title');
+            const messageText = document.getElementById('message-text');
+            const messageOkButton = document.getElementById('message-ok');
+            const restartButton = document.getElementById('restart-button');
+            const netsafeButton = document.getElementById('netsafe-button');
+            const soundToggleButton = document.getElementById('soundToggle');
+            const mobileControls = document.getElementById('mobile-controls');
+            const controlButtons = document.querySelectorAll('.control-btn');
+
+            const WALL_COLOR = '#343a40'; // A dark color for walls
+            const PATH_COLOR = '#f1f1f1'; // The background color of the paths
+            const ENEMY_SPEED = 400; // How often enemies move, in milliseconds
+
+            // --- Game State Variables ---
+            let playerX, playerY;
+            let startX, startY;
+            let score = 0;
+            let lives = 3;
+            let totalItems = 0;
+            let gameState = 'ready'; // 'ready', 'playing', 'win', 'lose'
+            let enemyMoveInterval;
+            let isSoundOn = true;
+            
+            // Store enemy positions in a separate array
+            let enemies = [];
+            
+            // Updated maze layout, now a single, contiguous path
+            // 0 = Wall, 1 = Path, 2 = Collectible, 3 = Enemy, 4 = Insight
+            const updatedMaze = [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                [0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ];
+            
+            // Place all items and enemies in the new maze
+            updatedMaze[3][10] = 2; // Collectible 1
+            updatedMaze[5][2] = 2;  // Collectible 2
+            updatedMaze[5][14] = 2; // Collectible 3
+            updatedMaze[7][3] = 2;  // Collectible 4
+            updatedMaze[11][5] = 2; // Collectible 5
+            
+            updatedMaze[1][5] = 4;  // Insight 1
+            updatedMaze[9][8] = 4;  // Insight 2
+            updatedMaze[15][12] = 4; // Insight 3
+            
+            updatedMaze[1][14] = 3; // Enemy 1
+            updatedMaze[5][8] = 3;  // Enemy 2
+            updatedMaze[7][1] = 3;  // Enemy 3
+            updatedMaze[9][5] = 3;  // Enemy 4
+            updatedMaze[13][1] = 3; // Enemy 5
+
+            let maze = JSON.parse(JSON.stringify(updatedMaze)); // Use the new maze
+
+            // Themed collectibles and insights with updated descriptions
+            const collectibles = [
+                { emoji: ' ', name: 'Password', message: 'You have collected a strong password! This helps protect your online accounts.' },
+                { emoji: '🛡️', name: '2FA', message: 'You collected Two-Factor Authentication! This is a powerful shield that requires a second form of verification to log in, making your accounts much more secure.' },
+                { emoji: '📶', name: 'Trusted Wi‑Fi', message: 'You found trusted Wi-Fi! Always connect to a secure and reliable network to protect your data from being seen by others.' },
+                { emoji: '🔒', name: 'Privacy', message: 'You collected Privacy! Remember to adjust your privacy settings on social media and apps to control who sees your personal information.' },
+                { emoji: '💾', name: 'Backup', message: 'You found a backup! Regularly saving your data to a separate device or cloud service is important in case your computer or phone is lost or damaged.' }
+            ];
+
+            const insights = [
+                { emoji: '🧭', title: 'Think Before You Click', text: 'That link looks fishy! Take a moment to think before you click. Does the sender seem legitimate? Could it be a scam? You have the power to protect yourself online.' },
+                { emoji: '📢', title: 'Report Bullying', text: 'If someone is being hurtful online, you have the power to block and report them. This helps stop the bullying and keeps the digital space safe for everyone. Don’t let negativity win!' },
+                { emoji: '🧯', title: 'Block & Mute', text: 'If you are being harassed or bothered, use block and mute features to protect yourself. You have control over your digital space and can choose who you interact with.' }
+            ];
+
+            // Emojis for game elements, now with 5 enemies
+            const EMOJIS = {
+                player: '😊',
+                lives: '❤️',
+                enemies: ['🎣', '🤖', '👺', '🗑️', '😠'],
+            };
+
+            // Descriptions for each threat, now with 5 enemies
+            const threats = {
+                '🎣': {
+                    title: 'The Phisher',
+                    description: 'This is a phishing threat! Phishing is when a scammer tries to trick you into giving them your personal information, like passwords or credit card numbers, by pretending to be a trusted person or company. Watch out for suspicious emails or messages!'
+                },
+                '🤖': {
+                    title: 'The Misinfo Bot',
+                    description: 'This is a misinformation bot! Misinformation is false information that is spread online, often through automated accounts. It can be hard to spot, so always check your sources and think critically about what you read.'
+                },
+                '👺': {
+                    title: 'The Troll',
+                    description: 'This is an internet troll! Trolls are people who intentionally start arguments or post upsetting comments online to provoke a reaction. The best way to deal with a troll is to ignore them and not engage.'
+                },
+                '🗑️': {
+                    title: 'Spam',
+                    description: 'This is a spam threat! Spam is unwanted and annoying messages, often sent in bulk. Avoid clicking links or replying to spam. The best thing to do is simply delete it and move on.'
+                },
+                '😠': {
+                    title: 'The Cyberbully',
+                    description: 'This is a cyberbully! Cyberbullying is when someone uses digital technology to hurt, harass, or embarrass another person. Remember to always be kind online and to report any bullying you see.'
+                }
+            };
+            
+            // --- Audio & Music ---
+            const synth = new Tone.PolySynth(Tone.Synth, { volume: -15 }).toDestination();
+            const collectSynth = new Tone.MembraneSynth({ volume: -10 }).toDestination();
+            const loseSynth = new Tone.Synth({
+                oscillator: { type: "sawtooth" },
+                envelope: {
+                    attack: 0.05,
+                    decay: 0.1,
+                    sustain: 0.1,
+                    release: 0.5
+                },
+                volume: -10
+            }).toDestination();
+            let bgm;
+
+            /**
+             * Sets up and starts the background music.
+             */
+            function startMusic() {
+                if (!isSoundOn) return;
+                if (bgm) {
+                    bgm.dispose();
+                }
+
+                bgm = new Tone.Sequence((time, note) => {
+                    synth.triggerAttackRelease(note, '8n', time);
+                }, ["C4", "G3", "A3", "E3"]).start(0);
+
+                // Start the main transport to play the sequence
+                Tone.Transport.start();
+            }
+
+            /**
+             * Plays a sound effect for collecting an item.
+             */
+            function playCollectSound() {
+                if (isSoundOn) {
+                    collectSynth.triggerAttackRelease("C2", "8n");
+                }
+            }
+
+            /**
+             * Plays a sound effect for losing the game.
+             */
+            function playLoseSound() {
+                if (isSoundOn) {
+                    loseSynth.triggerAttackRelease("C3", "16n");
+                }
+            }
+
+
+            // --- Game Functions ---
+
+            /**
+             * Initializes or resets the game state.
+             */
+            function initializeGame() {
+                // Reset game state
+                score = 0;
+                lives = 3;
+                gameState = 'playing';
+
+                // Create a fresh maze copy
+                maze = JSON.parse(JSON.stringify(updatedMaze));
+                enemies = [];
+
+                let collectibleIndex = 0;
+                let insightIndex = 0;
+                let enemyIndex = 0;
+
+                for (let y = 0; y < maze.length; y++) {
+                    for (let x = 0; x < maze[y].length; x++) {
+                        if (maze[y][x] === 1 && playerX === undefined) {
+                            playerX = x;
+                            playerY = y;
+                            startX = x;
+                            startY = y;
+                        } else if (maze[y][x] === 3) {
+                            // Assign enemy emoji based on the new list of 5 enemies
+                            const enemyEmoji = EMOJIS.enemies[enemyIndex % EMOJIS.enemies.length];
+                            enemies.push({ x: x, y: y, emoji: enemyEmoji, threat: threats[enemyEmoji] });
+                            enemyIndex++;
+                        } else if (maze[y][x] === 2) {
+                            // Assign collectible from collectibles array
+                            const item = collectibles[collectibleIndex];
+                            maze[y][x] = { type: 2, emoji: item.emoji, index: collectibleIndex, message: item.message };
+                            collectibleIndex++;
+                        } else if (maze[y][x] === 4) {
+                            // Assign insight from insights array
+                            const item = insights[insightIndex];
+                            maze[y][x] = { type: 4, emoji: item.emoji, title: item.title, text: item.text };
+                            insightIndex++;
+                        }
+                    }
+                }
+                
+                // Count total items
+                totalItems = collectibles.length + insights.length;
+
+                // Stop any previous intervals
+                clearInterval(enemyMoveInterval);
+                
+                // Start enemy movement
+                enemyMoveInterval = setInterval(moveEnemies, ENEMY_SPEED);
+
+                // Start music (requires user interaction first for some browsers)
+                Tone.start().then(startMusic);
+
+                // Hide start screen and show canvas
+                startScreen.style.display = 'none';
+                canvas.style.display = 'block';
+
+                // Hide messages and buttons
+                messageBox.classList.remove('visible');
+                messageOkButton.style.display = 'block';
+                restartButton.style.display = 'none';
+                netsafeButton.style.display = 'none';
+
+                // Update UI and start the game loop
+                updateUI();
+                requestAnimationFrame(gameLoop);
+            }
+
+            /**
+             * Moves enemies to a new random, valid position.
+             */
+            function moveEnemies() {
+                if (gameState !== 'playing') {
+                    clearInterval(enemyMoveInterval);
+                    return;
+                }
+
+                enemies.forEach(enemy => {
+                    // Try to move to a new random, valid cell
+                    const directions = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
+                    let newX = enemy.x;
+                    let newY = enemy.y;
+                    let validMove = false;
+
+                    // Keep trying until a valid move is found or we've tried all directions
+                    let attempts = directions.length;
+                    while (attempts > 0) {
+                        const randomDir = directions[Math.floor(Math.random() * directions.length)];
+                        const tempX = enemy.x + randomDir.dx;
+                        const tempY = enemy.y + randomDir.dy;
+
+                        // Check if the new position is a path (1) or a collectible/insight (objects with type > 0)
+                        const nextCell = maze[tempY] ? maze[tempY][tempX] : 0;
+                        const nextCellType = typeof nextCell === 'object' ? nextCell.type : nextCell;
+
+                        if (nextCellType > 0) {
+                            newX = tempX;
+                            newY = tempY;
+                            validMove = true;
+                            break;
+                        }
+                        attempts--;
+                    }
+
+                    if (validMove) {
+                        // Update enemy position
+                        enemy.x = newX;
+                        enemy.y = newY;
+                    }
+                });
+                
+                // Check for collision after all enemies have moved
+                checkCollision();
+                draw(); // Redraw with new enemy positions
+            }
+
+            /**
+             * Checks if the player has collided with an enemy.
+             */
+            function checkCollision() {
+                enemies.forEach(enemy => {
+                    if (playerX === enemy.x && playerY === enemy.y) {
+                        lives--;
+                        playLoseSound();
+                        updateUI();
+                        if (lives <= 0) {
+                            gameState = 'lose';
+                            showMessage('Game Over', `${enemy.threat.title} - ${enemy.threat.description}`, 'danger');
+                            Tone.Transport.stop(); // Stop the music
+                        } else {
+                            // Reset player to start position
+                            playerX = startX;
+                            playerY = startY;
+                            showMessage('Ouch!', `${enemy.threat.title}: ${enemy.threat.description}`, 'info');
+                        }
+                    }
+                });
+            }
+
+            /**
+             * Draws the entire game state on the canvas.
+             */
+            function draw() {
+                // Clear the canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Calculate the cell size dynamically to fit the canvas
+                const gridSizeX = maze[0].length;
+                const gridSizeY = maze.length;
+                const cellSizeX = canvas.width / gridSizeX;
+                const cellSizeY = canvas.height / gridSizeY;
+
+                // Loop through the maze grid and draw each cell
+                for (let y = 0; y < gridSizeY; y++) {
+                    for (let x = 0; x < gridSizeX; x++) {
+                        ctx.fillStyle = WALL_COLOR;
+                        const cell = maze[y][x];
+                        const cellType = typeof cell === 'object' ? cell.type : cell;
+
+                        // Draw walls and paths
+                        if (cellType === 0) {
+                            ctx.fillRect(x * cellSizeX, y * cellSizeY, cellSizeX, cellSizeY);
+                        } else {
+                            ctx.fillStyle = PATH_COLOR;
+                            ctx.fillRect(x * cellSizeX, y * cellSizeY, cellSizeX, cellSizeY);
+                        }
+
+                        // Draw game elements (emojis)
+                        ctx.font = `${Math.min(cellSizeX, cellSizeY) * 0.8}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        const emojiX = x * cellSizeX + cellSizeX / 2;
+                        const emojiY = y * cellSizeY + cellSizeY / 2;
+
+                        if (typeof cell === 'object') {
+                            ctx.fillText(cell.emoji, emojiX, emojiY);
+                        }
+                    }
+                }
+                
+                // Draw enemies
+                enemies.forEach(enemy => {
+                    const emojiX = enemy.x * cellSizeX + cellSizeX / 2;
+                    const emojiY = enemy.y * cellSizeY + cellSizeY / 2;
+                    ctx.font = `${Math.min(cellSizeX, cellSizeY) * 0.8}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(enemy.emoji, emojiX, emojiY);
+                });
+                
+                // Draw the player last so they are on top
+                ctx.font = `${Math.min(cellSizeX, cellSizeY) * 0.8}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const playerEmojiX = playerX * cellSizeX + cellSizeX / 2;
+                const playerEmojiY = playerY * cellSizeY + cellSizeY / 2;
+                ctx.fillText(EMOJIS.player, playerEmojiX, playerEmojiY);
+            }
+
+            /**
+             * Handles player movement and game logic.
+             * @param {number} newX - The target X coordinate.
+             * @param {number} newY - The target Y coordinate.
+             */
+            function movePlayer(newX, newY) {
+                if (gameState !== 'playing') return;
+
+                const nextCell = maze[newY] ? maze[newY][newX] : 0;
+                const nextCellType = typeof nextCell === 'object' ? nextCell.type : nextCell;
+                
+                // Check if the next cell is a wall
+                if (nextCellType === 0) {
+                    return;
+                }
+
+                // Move the player to the new position
+                playerX = newX;
+                playerY = newY;
+                
+                // Check what the player landed on
+                switch (nextCellType) {
+                    case 2: // Collectible
+                        const collectible = maze[playerY][playerX];
+                        score++;
+                        playCollectSound();
+                        showMessage('Item Collected!', collectible.message, 'info');
+                        maze[playerY][playerX] = 1; // Remove the collectible from the maze
+                        break;
+                    case 4: // Landmark (Insight)
+                        const insight = maze[playerY][playerX];
+                        showMessage(insight.title, insight.text, 'info');
+                        score++; // Insights also count towards score
+                        maze[playerY][playerX] = 1; // Remove the insight from the maze
+                        break;
+                }
+                
+                // Check for win condition
+                if (score === totalItems) {
+                    gameState = 'win';
+                    showMessage('Congratulations!', 'You successfully navigated the digital world and collected all the positive items!', 'success');
+                    Tone.Transport.stop();
+                }
+
+                updateUI();
+                draw(); // Redraw the canvas immediately after a move
+                checkCollision(); // Check collision again after the player's move
+            }
+
+            /**
+             * Updates the score, lives, and remaining collectibles display.
+             */
+            function updateUI() {
+                scoreDisplay.textContent = `Score: ${score}`;
+                collectiblesLeftDisplay.textContent = `Remaining: ${totalItems - score}`;
+                livesDisplay.innerHTML = '';
+                for (let i = 0; i < lives; i++) {
+                    livesDisplay.innerHTML += EMOJIS.lives;
+                }
+            }
+
+            /**
+             * Displays a message box with the given title and text.
+             * @param {string} title
+             * @param {string} text
+             * @param {string} type - 'info', 'success', or 'danger'
+             */
+            function showMessage(title, text, type) {
+                messageTitle.textContent = title;
+                messageText.textContent = text;
+                messageBox.classList.add('visible');
+                
+                // Show end-game buttons for win/lose
+                if (type === 'success' || type === 'danger') {
+                    messageOkButton.style.display = 'none';
+                    restartButton.style.display = 'inline-block';
+                    netsafeButton.style.display = 'inline-block';
+                } else {
+                    messageOkButton.style.display = 'block';
+                    restartButton.style.display = 'none';
+                    netsafeButton.style.display = 'none';
+                }
+            }
+            
+            /**
+             * Hides the message box.
+             */
+            function hideMessage() {
+                messageBox.classList.remove('visible');
+            }
+            
+            /**
+             * Toggles the sound on and off.
+             */
+            function toggleSound() {
+                isSoundOn = !isSoundOn;
+                soundToggleButton.textContent = isSoundOn ? 'Sound On' : 'Sound Off';
+                if (isSoundOn) {
+                    Tone.start().then(startMusic);
+                } else {
+                    Tone.Transport.stop();
+                }
+            }
+
+            /**
+             * The main game loop using requestAnimationFrame.
+             */
+            function gameLoop() {
+                if (gameState === 'playing') {
+                    draw();
+                    requestAnimationFrame(gameLoop);
+                }
+            }
+
+            // --- Event Listeners ---
+            
+            // Start button
+            startButton.addEventListener('click', () => {
+                initializeGame();
+            });
+
+            // Keyboard controls
+            window.addEventListener('keydown', (e) => {
+                let newX = playerX;
+                let newY = playerY;
+                
+                switch (e.key) {
+                    case 'ArrowUp':
+                        newY--;
+                        break;
+                    case 'ArrowDown':
+                        newY++;
+                        break;
+                    case 'ArrowLeft':
+                        newX--;
+                        break;
+                    case 'ArrowRight':
+                        newX++;
+                        break;
+                }
+                
+                // Check if the move is within the grid boundaries
+                if (newX >= 0 && newX < maze[0].length && newY >= 0 && newY < maze.length) {
+                    movePlayer(newX, newY);
+                }
+            });
+
+            // Message box OK button
+            messageOkButton.addEventListener('click', hideMessage);
+            
+            // Restart button
+            restartButton.addEventListener('click', () => {
+                initializeGame();
+            });
+
+            // Netsafe button
+            netsafeButton.addEventListener('click', () => {
+                window.open('https://netsafe.org.nz', '_blank');
+            });
+            
+            // Sound toggle button
+            soundToggleButton.addEventListener('click', toggleSound);
+
+            // Mobile controls
+            controlButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const direction = e.currentTarget.dataset.direction;
+                    let newX = playerX;
+                    let newY = playerY;
+
+                    switch (direction) {
+                        case 'up':
+                            newY--;
+                            break;
+                        case 'down':
+                            newY++;
+                            break;
+                        case 'left':
+                            newX--;
+                            break;
+                        case 'right':
+                            newX++;
+                            break;
+                    }
+                    if (newX >= 0 && newX < maze[0].length && newY >= 0 && newY < maze.length) {
+                        movePlayer(newX, newY);
+                    }
+                });
+            });
+
+            // Handle canvas resizing to maintain responsiveness
+            const resizeCanvas = () => {
+                const container = document.getElementById('game-container');
+                const containerWidth = container.clientWidth;
+                canvas.width = Math.min(containerWidth, 500); // Use a max width
+                canvas.height = canvas.width;
+                draw(); // Redraw everything after resizing
+            };
+            window.addEventListener('resize', resizeCanvas);
+            
+            // On window load, show the start screen and resize canvas
+            window.onload = function() {
+                resizeCanvas();
+            };
+
+        })();
+    </script>
+</body>
+</html>
+ 
